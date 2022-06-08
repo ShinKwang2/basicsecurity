@@ -517,3 +517,63 @@ protected void configure(HttpSecurity http) throws Exception {
   * 사용자가 주어진 권한 중 어떠한 것이라도 있다면 접근을 허용
 * **hasAddress(String)**
   * 주어진 IP 로부터 요청이 왔다면 접근을 허용 
+
+<br>
+<br>
+
+## 12. 예외 처리 및 요청 캐시 필터
+
+### ExceptionTranslationFilter & RequestCacheAwareFilter
+
+##### 필터의 순서
+>ExceptionTranslationFilter -> FilterSecurityInterceptor(맨 마지막에 위치한 필터)
+>
+>FilterSecurityInterceptor가 던지는 인증 예외와 인가 예외는 자기를 호출한 ExceptionTranslationFilter를 던짐(throw)
+>
+>따라서 ExceptionTranslationFilter 가 AuthenticationException(인증 예외)와 AccessDeniedException 을 어떻게 처리하는지가 관건
+
+### 1) ExceptionTranslationFilter
+
+#### AuthenticationException
+* **인증 예외 처리**
+  * **AuthenticationEntryPoint 호출**
+    * 로그인 페이지 이동, 401 오류 코드 전달 등
+  * **인증 예외가 발생하기 전의 요청 정보를 저장**
+    * **RequestCache** - 사용자의 이전 요청 정보를 세션에 저장하고 이를 꺼내 오는 캐시 메카니즘
+      * **SavedRequest** - 사용자가 요청했던 request 파라미터 값들, 그 당시의 헤더값들 등이 저장
+
+#### AccessDeniedException
+* **인가 예외 처리**
+  * **AccessDeniedHandler 에서 예외 처리하도록 제공**
+<br>
+
+
+#### http.exceptionHandling( ) : 예외처리 기능이 작동함
+```java
+protected void configure(HttpSecurity http) throws Exceptions {
+  http.exceptionHandling()
+      .authenticationEntryPoint(authenticationEntryPoint()) //인증실패시 처리
+      .accessDeniedHandler(accessDeniedHandler()) // 인가실패시 처리
+}
+```
+<br>
+<br>
+
+## 13. 사이트 간 요청 위조 - CSRF, CsrfFilter
+
+### CSRF(사이트 간 요청 위조) : Cross Site Request Forgery
+
+
+### CsrfFilter
+  * 모든 요청에 랜덤하게 생성된 토큰을 HTTP 파라미터로 요구
+  * 요청 시 전달되는 토큰 값과 서버에 저장된 실제 값과 비교한 후 만약 일치하지 않으면 요청은 실패
+
+**Client**
+```html
+\<input type="hidden" name="${_csrf.parameterName}" value ="${_csrf.token}">
+``` 
+* HTTP 메소드 : PATCH, POST, PUT, DELETE
+
+**SpringSecurity**
+* http.csrf( ) : 기본 활성화되어 있음
+* http.csrf( ).disabled( ) : 비활성화
